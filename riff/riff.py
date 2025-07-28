@@ -8,6 +8,7 @@ from packaging.version import InvalidVersion, Version
 
 from riff.logger import logger
 from riff.utils import (
+    DiffMode,
     parse_git_modified_lines,
     parse_ruff_output,
     validate_repo_path,
@@ -150,16 +151,45 @@ def validate_ruff_installation() -> None:
         "ignore_unknown_options": True,
     }
 )
-def main(  # dead: disable
+def main(  # dead: disable  # noqa: C901, PLR0913
     context: typer.Context,  # ruff args
     always_fail_on: list[str] = None,  # type:ignore[assignment] # noqa: RUF013  # typer doesn't support `| None`
     print_github_annotation: bool = False,
     base_branch: str = "origin/main",
+    unstaged: bool = typer.Option(
+        False, "--unstaged", help="Check uncommitted, unstaged changes"
+    ),
+    staged: bool = typer.Option(False, "--staged", help="Check staged changes"),
+    diff_ref: str = typer.Option(
+        None,
+        "--diff-ref",
+        help="Check changes against an arbitrary git reference (e.g., HEAD~1)",
+    ),
 ) -> NoReturn:
     validate_repo_path()  # raises if a repo isn't found at cwd or above
     validate_ruff_installation()  # raises if ruff is not installed/outdated version
 
-    if not (modified_lines := parse_git_modified_lines(base_branch)):
+    # Determine diff mode based on CLI options
+    mode = DiffMode.BRANCH  # default
+    if sum([bool(unstaged), bool(staged), bool(diff_ref)]) > 1:
+        logger.error("Only one of --unstaged, --staged, or --diff-ref can be specified")
+        raise typer.Exit(1)
+
+    if unstaged:
+        mode = DiffMode.UNSTAGED
+    elif staged:
+        mode = DiffMode.STAGED
+    elif diff_ref:
+        mode = DiffMode.REF
+
+    # Parse modified lines based on mode
+    modified_lines = parse_git_modified_lines(
+        mode=mode,
+        base_branch=base_branch if mode == DiffMode.BRANCH else None,
+        diff_ref=diff_ref if mode == DiffMode.REF else None,
+    )
+
+    if not modified_lines:
         logger.info("No git-modified lines detected, exiting.")
         raise typer.Exit(0)
 

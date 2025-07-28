@@ -25,6 +25,25 @@ Ruff doesn't have a baseline feature, so Riff can come handy for enforcing Ruff 
 * Running `riff` without arguments will run it in the current directory.
 * Riff expects to be run in a repository folder.
 
+#### Examples
+
+**Basic usage:**
+* `riff` - Check changes between current HEAD and origin/main (default)
+* `riff --unstaged` - Check uncommitted, unstaged changes in your working directory
+* `riff --staged` - Check staged changes (after `git add`)
+* `riff --diff-ref HEAD~1` - Check changes in the last commit
+* `riff --diff-ref origin/feature-branch` - Check changes between current HEAD and another branch
+* `riff --base-branch origin/master` - Check changes against origin/master instead of origin/main
+
+**Passing Ruff arguments:**
+All unknown arguments are passed directly to Ruff. Examples:
+* `riff --ignore E402` - Ignore E402 violations
+* `riff --select E,W` - Only check for E and W error codes  
+* `riff --fix` - Apply fixes for fixable violations
+* `riff --show-fixes` - Show what fixes would be applied
+* `riff src/` - Check only files in src/ directory
+* `riff --unstaged --ignore E402,F401` - Combine Riff and Ruff arguments
+
 ### As a pre-commit hook
 
 Copy this to your [`.pre-commit-config`](https://pre-commit.com/#plugins) file
@@ -46,6 +65,9 @@ To pass other arguments to Riff (and Ruff), add the `args` key, e.g.
 * `always-fail-on`: comma-separated list of Ruff error codes. When detected by Ruff, Riff will consider them as failures, even if they're not in lines modified in the current branch.
 * `print-github-annotation`: boolean (default `false`). When set to `true`, will add [GitHub Annotations](https://dailystuff.nl/blog/2023/extending-github-actions-with-annotations), making the violations more visible when reviewing code in GitHub's `Modified Files` tab.
 * `base-branch`: string (default `origin/main`). Change to `origin/master` or whatever your base branch is named.
+* `--unstaged`: Check uncommitted, unstaged changes in your working directory.
+* `--staged`: Check staged changes (changes added with `git add` but not yet committed).
+* `--diff-ref`: Check changes against an arbitrary git reference (e.g., `HEAD~1`, commit hash, tag, or branch name).
 
 ## Limitations
 * When using Ruff's `--fix` feature, Ruff will fix everything it is [configured](https://beta.ruff.rs/docs/configuration/) to, regardless of the modified lines. Riff cannot control this behavior.
